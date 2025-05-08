@@ -1,6 +1,48 @@
 
 
-<?php include("./includes/header.php"); ?>
+<?php 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+//piyumi
+    include("./includes/header.php"); 
+    include_once 'auth.php';
+    include_once 'validateInput.php';
+    include_once 'dbUtil.php';
+    include_once 'session.php';
+
+    if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        $fullName = htmlspecialchars($_POST['fullName']);
+        $email = htmlspecialchars($_POST['email']);
+        $password = htmlspecialchars($_POST['password']);
+        $confirmPassword = htmlspecialchars($_POST['confirmPassword']);
+        $phone = htmlspecialchars($_POST['phone']);
+
+        $ValidationErrors = validateRegistrationInput($fullName, $email, $password, $confirmPassword, $phone);
+
+        if(empty($ValidationErrors)) {
+            $hashedPassword = hashPassword($password);
+            $user = saveUserToDatabase($fullName, $hashedPassword, $email, $phone);
+
+            if ($user) {
+                echo "<script>console.log('User ID: " . $user . "');</script>";
+
+                $userData = getUserData($email);
+
+                //set user session
+                setSession('user_id', $userData['id']);
+                setSession('email', $userData['email']);
+
+                //redirect the user
+                header("Location: home.php"); 
+                exit; 
+            }     
+            
+        } else {
+            echo "<script>alert('Validation failed. Please check your input.');</script>";
+        }
+    }
+?>
 
 <body class="bg-gray-900 min-h-screen">
     <div class="flex justify-center items-center min-h-screen p-4">
@@ -13,7 +55,7 @@
             </div>
             
             <!-- Registration Form -->
-            <form id="registrationForm" action="#" method="POST" class="space-y-6">
+            <form id="registrationForm" action="register.php" method="POST" class="space-y-6">
                 <!-- Full Name -->
                 <div>
                     <label for="fullName" class="block text-sm font-medium text-gray-300">Full Name</label>
@@ -177,7 +219,6 @@
         
         // Form validation
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
-            e.preventDefault();
             
             // Validate form fields
             const fullName = document.getElementById('fullName').value.trim();
@@ -204,9 +245,6 @@
                 alert('Please enter a valid email address');
                 return;
             }
-            
-            // If all validations pass
-            alert('Registration form submitted successfully!');
-            // In a real application, you would submit the form to the server here
+            this.submit(); 
         });
     </script>
